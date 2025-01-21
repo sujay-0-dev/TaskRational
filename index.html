@@ -7,7 +7,100 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    
+    <div id="app">
+        <header>
+            <h1>To-Do Planner</h1>
+            <nav id="main-nav">
+                <button id="yearly-btn" class="nav-btn">Yearly</button>
+                <button id="monthly-btn" class="nav-btn">Monthly</button>
+                <button id="daily-btn" class="nav-btn">Daily</button>
+                <button id="logout-btn" class="nav-btn">Logout</button>
+            </nav>
+        </header>
+
+        <main>
+            <section id="auth-section">
+                <h2>Welcome</h2>
+                <form id="login-form">
+                    <input type="email" id="login-email" placeholder="Email" required>
+                    <input type="password" id="login-password" placeholder="Password" required>
+                    <button type="submit">Login</button>
+                <p>Don't have an account? <a href="#" id="show-register">Register</a></p>
+                </form>
+               <form id="register-form" style="display: none;">
+                    <input type="email" id="register-email" placeholder="Email" required><br>
+                    <input type="password" id="register-password" placeholder="Password" required><br>
+                    <button type="submit">Register</button>
+                    <p>If you have already Registered? <a href="#" id="show-login">Login</a></p>    
+                </form>
+            </section>
+
+            <section id="yearly-section" class="todo-section" style="display: none;">
+                <h2>Yearly Goals</h2>
+                <form id="yearly-form">
+                    <input type="text" id="yearly-goal" placeholder="Enter your yearly goal" required>
+                    <textarea id="yearly-steps" placeholder="Steps to achieve the goal" required></textarea>
+                    <div id="monthly-tasks">
+                        <h3>Monthly Tasks</h3>
+                        <div class="month-inputs">
+                            <input type="text" class="monthly-task" data-month="January" placeholder="January task">
+                            <input type="text" class="monthly-task" data-month="February" placeholder="February task">
+                            <input type="text" class="monthly-task" data-month="March" placeholder="March task">
+                            <input type="text" class="monthly-task" data-month="April" placeholder="April task">
+                            <input type="text" class="monthly-task" data-month="May" placeholder="May task">
+                            <input type="text" class="monthly-task" data-month="June" placeholder="June task">
+                            <input type="text" class="monthly-task" data-month="July" placeholder="July task">
+                            <input type="text" class="monthly-task" data-month="August" placeholder="August task">
+                            <input type="text" class="monthly-task" data-month="September" placeholder="September task">
+                            <input type="text" class="monthly-task" data-month="October" placeholder="October task">
+                            <input type="text" class="monthly-task" data-month="November" placeholder="November task">
+                            <input type="text" class="monthly-task" data-month="December" placeholder="December task">
+                        </div>
+                    </div>
+                    <button type="submit">Add Yearly Goal</button>
+                </form>
+                <div id="yearly-goals-list"></div>
+            </section>
+
+            <section id="monthly-section" class="todo-section" style="display: none;">
+                <h2>Monthly Tasks</h2>
+                <select id="month-select">
+                    <option value="January">January</option>
+                    <option value="February">February</option>
+                    <option value="March">March</option>
+                    <option value="April">April</option>
+                    <option value="May">May</option>
+                    <option value="June">June</option>
+                    <option value="July">July</option>
+                    <option value="August">August</option>
+                    <option value="September">September</option>
+                    <option value="October">October</option>
+                    <option value="November">November</option>
+                    <option value="December">December</option>
+                </select>
+                <form id="monthly-form">
+                    <input type="text" id="monthly-task" placeholder="Enter your monthly task" required>
+                    <textarea id="monthly-steps" placeholder="Steps to complete the task" required></textarea>
+                    <input type="text" id="related-yearly-goal" placeholder="Related yearly goal">
+                    <button type="submit">Add Monthly Task</button>
+                </form>
+                <div id="monthly-tasks-list"></div>
+                <div id="holidays-list"></div>
+            </section>
+
+            <section id="daily-section" class="todo-section" style="display: none;">
+                <h2>Daily Tasks</h2>
+                <form id="daily-form">
+                    <input type="text" id="daily-task" placeholder="Enter your daily task" required>
+                    <input type="time" id="task-time" required>
+                    <button type="submit">Add Daily Task</button>
+                </form>
+                <div id="daily-tasks-list"></div>
+            </section>
+        </main>
+
+        <div id="notification-container"></div>
+    </div>
 </body>
 <script src="script.js"></script>
 </html>
