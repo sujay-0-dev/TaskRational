@@ -1,52 +1,292 @@
-
 let currentUser = null;
 
-function showSection(sectionId) {
-    document.querySelectorAll('.todo-section').forEach(section => {
-        section.style.display = 'none';
-    });
-    document.getElementById(sectionId).style.display = 'block';
-}
+let yearlyGoals = [];
+let monthlyTasks = {};
+let dailyTasks = [];
+
+
+const authSection = document.getElementById('auth-section');
+const mainSection = document.getElementById('main-section');
+const loginContainer = document.getElementById('login-container');
+const registerContainer = document.getElementById('register-container');
+
+
+document.getElementById('show-register').addEventListener('click', (e) => {
+    e.preventDefault();
+    loginContainer.style.display = 'none';
+    registerContainer.style.display = 'block';
+});
+
+document.getElementById('show-login').addEventListener('click', (e) => {
+    e.preventDefault();
+    registerContainer.style.display = 'none';
+    loginContainer.style.display = 'block';
+});
+
 
 function login(email, password) {
     const users = JSON.parse(localStorage.getItem('users')) || {};
     if (users[email] && users[email].password === password) {
         currentUser = email;
         localStorage.setItem('currentUser', email);
-        showSection('yearly-section');
-        document.getElementById('auth-section').style.display = 'none';
-        document.getElementById('main-nav').style.display = 'block';
+        showMainApp();
         loadUserData();
     } else {
         alert('Invalid email or password');
     }
 }
 
-function register(email, password) {
+function register(name, email, password) {
     const users = JSON.parse(localStorage.getItem('users')) || {};
     if (users[email]) {
         alert('User already exists');
-    } else {
-        users[email] = { password };
-        localStorage.setItem('users', JSON.stringify(users));
-        login(email, password);
+        return;
     }
+    users[email] = { name, password };
+    localStorage.setItem('users', JSON.stringify(users));
+    login(email, password);
 }
 
 function logout() {
     currentUser = null;
     localStorage.removeItem('currentUser');
-    document.getElementById('auth-section').style.display = 'block';
-    document.getElementById('main-nav').style.display = 'none';
-    showSection('auth-section');
+    authSection.style.display = 'block';
+    mainSection.style.display = 'none';
 }
+
+
+document.getElementById('login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    login(email, password);
+});
+
+document.getElementById('register-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('register-name').value;
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    register(name, email, password);
+});
+
+
+function showMainApp() {
+    authSection.style.display = 'none';
+    mainSection.style.display = 'block';
+    showSection('yearly-section');
+}
+
+function showSection(sectionId) {
+    document.querySelectorAll('.task-section').forEach(section => {
+        section.style.display = 'none';
+    });
+    document.getElementById(sectionId).style.display = 'block';
+    
+    
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[id^="${sectionId.split('-')[0]}"]`).classList.add('active');
+}
+
+
+function addYearlyGoal(goal, description) {
+    const newGoal = { goal, description, completed: false };
+    yearlyGoals.push(newGoal);
+    saveUserData();
+    renderYearlyGoals();
+    generateMonthlyTasks(newGoal);
+}
+
+function generateMonthlyTasks(yearlyGoal) {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    months.forEach(month => {
+        if (!monthlyTasks[month]) {
+            monthlyTasks[month] = [];
+        }
+        monthlyTasks[month].push({
+            task: `Work on: ${yearlyGoal.goal}`,
+            steps: `Monthly progress for: ${yearlyGoal.description}`,
+            completed: false
+        });
+    });
+    saveUserData();
+    renderMonthlyTasks();
+}
+
+function addMonthlyTask(month, task, steps) {
+    if (!monthlyTasks[month]) {
+        monthlyTasks[month] = [];
+    }
+    monthlyTasks[month].push({ task, steps, completed: false });
+    saveUserData();
+    renderMonthlyTasks();
+    generateDailyTasks(month, task);
+}
+
+function generateDailyTasks(month, monthlyTask) {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                   'July', 'August', 'September', 'October', 'November', 'December'];
+    const daysInMonth = new Date(new Date().getFullYear(), months.indexOf(month) + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+        dailyTasks.push({
+            task: `${monthlyTask} - Day ${i}`,
+            time: '09:00',
+            completed: false,
+            date: `${month} ${i}, ${new Date().getFullYear()}`
+        });
+    }
+    saveUserData();
+    renderDailyTasks();
+}
+
+function addDailyTask(task, time, interval) {
+    const today = new Date();
+    const taskDate = `${months[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
+    dailyTasks.push({ task, time, interval, completed: false, date: taskDate });
+    saveUserData();
+    renderDailyTasks();
+    scheduleTaskNotification(task, time, interval);
+}
+
+
+function scheduleTaskNotification(task, time, interval) {
+    const [hours, minutes] = time.split(':');
+    const taskTime = new Date();
+    taskTime.setHours(hours, minutes, 0, 0);
+    
+    const notificationTime = new Date(taskTime.getTime() - 5 * 60000); // 5 minutes before
+    const now = new Date();
+    
+    if (notificationTime > now) {
+        const timeUntilNotification = notificationTime.getTime() - now.getTime();
+        setTimeout(() => showNotification(`Your task "${task}" starts in 5 minutes!`), timeUntilNotification);
+        
+        const timeUntilCompletion = taskTime.getTime() + interval * 60000 - now.getTime();
+        setTimeout(() => showNotification(`Did you complete your task "${task}"?`), timeUntilCompletion);
+    }
+}
+
+function showNotification(message) {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.style.display = 'block';
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 5000);
+}
+
+
+function renderYearlyGoals() {
+    const container = document.getElementById('yearly-goals-list');
+    container.innerHTML = '';
+    yearlyGoals.forEach((goal, index) => {
+        const element = createTaskElement(goal.goal, goal.description, index, 'yearly');
+        container.appendChild(element);
+    });
+}
+
+function renderMonthlyTasks() {
+    const container = document.getElementById('monthly-tasks-list');
+    const month = document.getElementById('month-select').value;
+    container.innerHTML = '';
+    if (monthlyTasks[month]) {
+        monthlyTasks[month].forEach((task, index) => {
+            const element = createTaskElement(task.task, task.steps, index, 'monthly');
+            container.appendChild(element);
+        });
+    }
+}
+
+function renderDailyTasks() {
+    const container = document.getElementById('daily-tasks-list');
+    container.innerHTML = '';
+    const today = new Date();
+    const todayString = `${months[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`;
+    dailyTasks.filter(task => task.date === todayString).forEach((task, index) => {
+        const element = createTaskElement(task.task, `Time: ${task.time}, Duration: ${task.interval} minutes`, index, 'daily');
+        container.appendChild(element);
+    });
+}
+
+function createTaskElement(title, description, index, type) {
+    const div = document.createElement('div');
+    div.className = 'task-item';
+    div.innerHTML = `
+        <h3>${title}</h3>
+        <p>${description}</p>
+        <div class="task-actions">
+            <button onclick="deleteTask('${type}', ${index})" class="delete-btn">Delete</button>
+            <button onclick="toggleComplete('${type}', ${index})" class="complete-btn">
+                ${isTaskComplete(type, index) ? 'Completed' : 'Mark Complete'}
+            </button>
+        </div>
+    `;
+    return div;
+}
+
+
+function deleteTask(type, index) {
+    switch (type) {
+        case 'yearly':
+            yearlyGoals.splice(index, 1);
+            renderYearlyGoals();
+            break;
+        case 'monthly':
+            const month = document.getElementById('month-select').value;
+            monthlyTasks[month].splice(index, 1);
+            renderMonthlyTasks();
+            break;
+        case 'daily':
+            dailyTasks.splice(index, 1);
+            renderDailyTasks();
+            break;
+    }
+    saveUserData();
+}
+
+function toggleComplete(type, index) {
+    switch (type) {
+        case 'yearly':
+            yearlyGoals[index].completed = !yearlyGoals[index].completed;
+            renderYearlyGoals();
+            break;
+        case 'monthly':
+            const month = document.getElementById('month-select').value;
+            monthlyTasks[month][index].completed = !monthlyTasks[month][index].completed;
+            renderMonthlyTasks();
+            break;
+        case 'daily':
+            dailyTasks[index].completed = !dailyTasks[index].completed;
+            renderDailyTasks();
+            break;
+    }
+    saveUserData();
+}
+
+function isTaskComplete(type, index) {
+    switch (type) {
+        case 'yearly':
+            return yearlyGoals[index].completed;
+        case 'monthly':
+            const month = document.getElementById('month-select').value;
+            return monthlyTasks[month][index].completed;
+        case 'daily':
+            return dailyTasks[index].completed;
+        default:
+            return false;
+    }
+}
+
 
 function saveUserData() {
     if (currentUser) {
         const userData = {
-            yearlyGoals: yearlyGoals,
-            monthlyTasks: monthlyTasks,
-            dailyTasks: dailyTasks
+            yearlyGoals,
+            monthlyTasks,
+            dailyTasks
         };
         localStorage.setItem(`userData_${currentUser}`, JSON.stringify(userData));
     }
@@ -65,212 +305,7 @@ function loadUserData() {
 }
 
 
-let yearlyGoals = [];
-
-function addYearlyGoal(goal, steps, monthlyTasks) {
-    yearlyGoals.push({ goal, steps, monthlyTasks });
-    saveUserData();
-    renderYearlyGoals();
-}
-
-function renderYearlyGoals() {
-    const yearlyGoalsList = document.getElementById('yearly-goals-list');
-    yearlyGoalsList.innerHTML = '';
-    yearlyGoals.forEach((goal, index) => {
-        const goalElement = document.createElement('div');
-        goalElement.classList.add('task-item');
-        goalElement.innerHTML = `
-            <h3>${goal.goal}</h3>
-            <p><strong>Steps:</strong> ${goal.steps}</p>
-            <h4>Monthly Tasks:</h4>
-            <ul>
-                ${Object.entries(goal.monthlyTasks).map(([month, task]) => `<li><strong>${month}:</strong> ${task}</li>`).join('')}
-            </ul>
-            <button onclick="deleteYearlyGoal(${index})">Delete</button>
-        `;
-        yearlyGoalsList.appendChild(goalElement);
-    });
-}
-
-function deleteYearlyGoal(index) {
-    yearlyGoals.splice(index, 1);
-    saveUserData();
-    renderYearlyGoals();
-}
-
-
-let monthlyTasks = {};
-
-function addMonthlyTask(month, task, steps, relatedGoal) {
-    if (!monthlyTasks[month]) {
-        monthlyTasks[month] = [];
-    }
-    monthlyTasks[month].push({ task, steps, relatedGoal });
-    saveUserData();
-    renderMonthlyTasks();
-}
-
-function renderMonthlyTasks() {
-    const monthSelect = document.getElementById('month-select');
-    const selectedMonth = monthSelect.value;
-    const monthlyTasksList = document.getElementById('monthly-tasks-list');
-    monthlyTasksList.innerHTML = '';
-    if (monthlyTasks[selectedMonth]) {
-        monthlyTasks[selectedMonth].forEach((task, index) => {
-            const taskElement = document.createElement('div');
-            taskElement.classList.add('task-item');
-            taskElement.innerHTML = `
-                <h3>${task.task}</h3>
-                <p><strong>Steps:</strong> ${task.steps}</p>
-                <p><strong>Related Yearly Goal:</strong> ${task.relatedGoal}</p>
-                <button onclick="deleteMonthlyTask('${selectedMonth}', ${index})">Delete</button>
-            `;
-            monthlyTasksList.appendChild(taskElement);
-        });
-    }
-    renderHolidays(selectedMonth);
-}
-
-function deleteMonthlyTask(month, index) {
-    monthlyTasks[month].splice(index, 1);
-    saveUserData();
-    renderMonthlyTasks();
-}
-
-function renderHolidays(month) {
-    const holidays = {
-        'January': ['New Year\'s Day'],
-        'July': ['Independence Day'],
-        'December': ['Christmas Day']
-    };
-    const holidaysList = document.getElementById('holidays-list');
-    holidaysList.innerHTML = '<h3>Holidays:</h3>';
-    if (holidays[month]) {
-        const holidayItems = holidays[month].map(holiday => `<li>${holiday}</li>`).join('');
-        holidaysList.innerHTML += `<ul>${holidayItems}</ul>`;
-    } else {
-        holidaysList.innerHTML += '<p>No holidays this month.</p>';
-    }
-}
-
-
-let dailyTasks = [];
-
-function addDailyTask(task, time) {
-    dailyTasks.push({ task, time, completed: false });
-    saveUserData();
-    renderDailyTasks();
-    scheduleNotification(task, time);
-}
-
-function renderDailyTasks() {
-    const dailyTasksList = document.getElementById('daily-tasks-list');
-    dailyTasksList.innerHTML = '';
-    dailyTasks.sort((a, b) => a.time.localeCompare(b.time)).forEach((task, index) => {
-        const taskElement = document.createElement('div');
-        taskElement.classList.add('task-item');
-        taskElement.innerHTML = `
-            <h3>${task.task}</h3>
-            <p><strong>Time:</strong> ${task.time}</p>
-            <label>
-                <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleDailyTaskCompletion(${index})">
-                Completed
-            </label>
-            <button onclick="deleteDailyTask(${index})">Delete</button>
-        `;
-        dailyTasksList.appendChild(taskElement);
-    });
-}
-
-function toggleDailyTaskCompletion(index) {
-    dailyTasks[index].completed = !dailyTasks[index].completed;
-    saveUserData();
-    renderDailyTasks();
-}
-
-function deleteDailyTask(index) {
-    dailyTasks.splice(index, 1);
-    saveUserData();
-    renderDailyTasks();
-}
-
-
-function scheduleNotification(task, time) {
-    const now = new Date();
-    const [hours, minutes] = time.split(':');
-    const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-    
-    if (scheduledTime <= now) {
-        scheduledTime.setDate(scheduledTime.getDate() + 1);
-    }
-
-    const fiveMinutesBefore = new Date(scheduledTime.getTime() - 5 * 60000);
-    const timeDiff = fiveMinutesBefore.getTime() - now.getTime();
-
-    setTimeout(() => {
-        showNotification(`Task "${task}" starts in 5 minutes!`);
-    }, timeDiff);
-
-    setTimeout(() => {
-        showNotification(`Task "${task}" has ended. Did you complete it?`, () => {
-            const taskIndex = dailyTasks.findIndex(t => t.task === task && t.time === time);
-            if (taskIndex !== -1) {
-                toggleDailyTaskCompletion(taskIndex);
-            }
-        });
-    }, timeDiff + 5 * 60000);
-}
-
-function showNotification(message, action) {
-    const notificationContainer = document.getElementById('notification-container');
-    const notification = document.createElement('div');
-    notification.classList.add('notification');
-    notification.textContent = message;
-    
-    if (action) {
-        const actionButton = document.createElement('button');
-        actionButton.textContent = 'Mark as Completed';
-        actionButton.onclick = () => {
-            action();
-            notification.remove();
-        };
-        notification.appendChild(actionButton);
-    }
-
-    notificationContainer.appendChild(notification);
-    setTimeout(() => {
-        notification.remove();
-    }, 10000);
-}
-
-
-document.getElementById('login-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-    login(email, password);
-});
-
-document.getElementById('show-register').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('register-form').style.display = 'block';
-});
-
-document.getElementById('register-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('register-email').value;
-    const password = document.getElementById('register-password').value;
-    register(email, password);
-});
-document.getElementById('show-login').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('register-form').style.display = 'none';
-    document.getElementById('login-form').style.display = 'block';
-});
-
 document.getElementById('logout-btn').addEventListener('click', logout);
-
 document.getElementById('yearly-btn').addEventListener('click', () => showSection('yearly-section'));
 document.getElementById('monthly-btn').addEventListener('click', () => showSection('monthly-section'));
 document.getElementById('daily-btn').addEventListener('click', () => showSection('daily-section'));
@@ -278,12 +313,8 @@ document.getElementById('daily-btn').addEventListener('click', () => showSection
 document.getElementById('yearly-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const goal = document.getElementById('yearly-goal').value;
-    const steps = document.getElementById('yearly-steps').value;
-    const monthlyTasks = {};
-    document.querySelectorAll('.monthly-task').forEach(input => {
-        monthlyTasks[input.dataset.month] = input.value;
-    });
-    addYearlyGoal(goal, steps, monthlyTasks);
+    const description = document.getElementById('yearly-steps').value;
+    addYearlyGoal(goal, description);
     e.target.reset();
 });
 
@@ -292,8 +323,7 @@ document.getElementById('monthly-form').addEventListener('submit', (e) => {
     const month = document.getElementById('month-select').value;
     const task = document.getElementById('monthly-task').value;
     const steps = document.getElementById('monthly-steps').value;
-    const relatedGoal = document.getElementById('related-yearly-goal').value;
-    addMonthlyTask(month, task, steps, relatedGoal);
+    addMonthlyTask(month, task, steps);
     e.target.reset();
 });
 
@@ -301,21 +331,33 @@ document.getElementById('daily-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const task = document.getElementById('daily-task').value;
     const time = document.getElementById('task-time').value;
-    addDailyTask(task, time);
+    const interval = parseInt(document.getElementById('task-interval').value, 10);
+    addDailyTask(task, time, interval);
     e.target.reset();
 });
 
-document.getElementById('month-select').addEventListener('change', renderMonthlyTasks);
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+               'July', 'August', 'September', 'October', 'November', 'December'];
 
+function initializeApp() {
+   
+    const monthSelect = document.getElementById('month-select');
+    months.forEach(month => {
+        const option = document.createElement('option');
+        option.value = month;
+        option.textContent = month;
+        monthSelect.appendChild(option);
+    });
 
-document.getElementById('main-nav').style.display = 'none';
-const storedUser = localStorage.getItem('currentUser');
-if (storedUser) {
-    currentUser = storedUser;
-    showSection('yearly-section');
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('main-nav').style.display = 'block';
-    loadUserData();
-} else {
-    showSection('auth-section');
+    const currentDate = new Date();
+    monthSelect.value = months[currentDate.getMonth()];
+
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+        currentUser = storedUser;
+        showMainApp();
+        loadUserData();
+    }
 }
+
+initializeApp();

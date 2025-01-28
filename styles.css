@@ -165,7 +165,7 @@ body {
 .task-form, button{
     padding: 5px;
     border-radius: 20px;
-    background-color: #b494fa;
+    background-color: #8b35bc;
     margin-bottom: 10px;
 }
 .tasks-list {
@@ -231,3 +231,14 @@ body {
         margin: 1rem;
     }
 }
+.notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #4CAF50;
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+        display: none;
+        text-align: center;
+    }
